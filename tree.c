@@ -163,7 +163,10 @@ static int write_tree_recursive(const Index *idx, int start, int end, int depth,
             if (write_tree_recursive(idx, i, next_group, depth + 1, &entry->hash) != 0) return -1;
             i = next_group; // Skip the group we just processed
         } else {
-            // Logic for files (Commit 2.4)
+            strncpy(entry->name, relative_path, sizeof(entry->name) - 1);
+            entry->mode = idx->entries[i].mode;
+            entry->hash = idx->entries[i].hash;
+            i++;
     }
     return 0;
 }
