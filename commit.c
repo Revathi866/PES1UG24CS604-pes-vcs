@@ -204,7 +204,6 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     strncpy(commit.author, pes_author(), sizeof(commit.author) - 1);
     strncpy(commit.message, message, sizeof(commit.message) - 1);
 
-    // 3. Set parent if it exists
     ObjectID parent_id;
     if (head_read(&parent_id) == 0) {
         commit.parent = parent_id;
@@ -213,7 +212,6 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         commit.has_parent = 0;
     }
 
-    // 4. Serialize and Write
     void *buffer = NULL;
     size_t len = 0;
     if (commit_serialize(&commit, &buffer, &len) != 0) return -1;
@@ -223,5 +221,7 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         return -1;
     }
     free(buffer);
-    return 0;
+
+    // 5. Update branch head atomically
+    return head_update(commit_id_out);
 }
