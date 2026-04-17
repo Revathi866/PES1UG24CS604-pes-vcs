@@ -16,6 +16,8 @@
 // TODO functions:     index_load, index_save, index_add
 
 #include "index.h"
+#include "tree.h"
+#include "pes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <inttypes.h>
 
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
 
@@ -225,5 +228,18 @@ int index_add(Index *index, const char *path) {
         return -1;
     }
     free(data);
+    IndexEntry *e = index_find(index, path);
+    if (!e) {
+        if (index->count >= MAX_INDEX_ENTRIES) return -1;
+        e = &index->entries[index->count++];
+    }
+
+    e->mode = get_file_mode(path); // Function from tree.h
+    e->hash = blob_id;
+    e->mtime_sec = (int64_t)st.st_mtime;
+    e->size = (size_t)st.st_size;
+    strncpy(e->path, path, sizeof(e->path) - 1);
+
+    return index_save(index);
     
 }
