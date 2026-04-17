@@ -110,8 +110,12 @@ unsigned char *buffer = malloc(total_len);
 
 memcpy(buffer, header, header_len);
 memcpy(buffer + header_len, data, len);
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
+
+compute_hash(buffer, total_len, id_out);
+
+if (object_exists(id_out)) {
+    free(buffer);
+    return 0;
 }
 
 // Read an object from the store.
