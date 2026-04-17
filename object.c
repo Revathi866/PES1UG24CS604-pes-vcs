@@ -144,6 +144,15 @@ fsync(fd);
 close(fd);
 
 rename(temp_path, path);
+
+int dir_fd = open(dir, O_DIRECTORY);
+if (dir_fd >= 0) {
+    fsync(dir_fd);
+    close(dir_fd);
+}
+
+free(buffer);
+return 0;
 }
 
 // Read an object from the store.
