@@ -177,9 +177,25 @@ int index_save(const Index *index) {
     Index sorted_index = *index;
     qsort(sorted_index.entries, sorted_index.count, sizeof(IndexEntry), compare_index_entries);
     
-    (void)index;
-    return -1;
+    char tmp_path[512];
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", INDEX_FILE);
+    FILE *f = fopen(tmp_path, "w");
+    if (!f) return -1;
+
+    for (int i = 0; i < sorted_index.count; i++) {
+        char hex[HASH_HEX_SIZE + 1];
+        hash_to_hex(&sorted_index.entries[i].hash, hex);
+        fprintf(f, "%o %s %ld %zu %s\n", 
+                sorted_index.entries[i].mode, hex, 
+                sorted_index.entries[i].mtime_sec, 
+                sorted_index.entries[i].size, sorted_index.entries[i].path);
+    }
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f);
+    return rename(tmp_path, INDEX_FILE);
 }
+
 
 // Stage a file for the next commit.
 //
