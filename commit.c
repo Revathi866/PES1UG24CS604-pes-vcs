@@ -195,11 +195,17 @@ int head_update(const ObjectID *new_commit) {
 // Returns 0 on success, -1 on error.
 int commit_create(const char *message, ObjectID *commit_id_out) {
     ObjectID tree_id;
-    // 1. Create a tree from the index
-    if (tree_from_index(&tree_id) != 0) {
-        fprintf(stderr, "error: nothing to commit (index empty or invalid)\n");
-        return -1;
-    }
-    (void)message; (void)commit_id_out; // Temporary to avoid warnings
-    return 0; 
+    if (tree_from_index(&tree_id) != 0) return -1;
+
+    Commit commit;
+    memset(&commit, 0, sizeof(Commit));
+    
+    // 2. Set metadata
+    commit.tree = tree_id;
+    commit.timestamp = (uint64_t)time(NULL);
+    strncpy(commit.author, pes_author(), sizeof(commit.author) - 1);
+    strncpy(commit.message, message, sizeof(commit.message) - 1);
+
+    (void)commit_id_out;
+    return 0;
 }
