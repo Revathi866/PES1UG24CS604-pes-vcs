@@ -135,7 +135,16 @@ static int write_tree_recursive(const Index *idx, int start, int end, int depth,
     tree.count = 0;
 
     for (int i = start; i < end; ) {
-        // Step-by-step logic will be added in subsequent commits
+        const char *path = idx->entries[i].path;
+        // Skip path components already processed (depth)
+        const char *relative_path = path;
+        for(int d = 0; d < depth; d++) {
+            relative_path = strchr(relative_path, '/');
+            if (relative_path) relative_path++;
+        }
+
+        const char *slash = strchr(relative_path, '/');
+        TreeEntry *entry = &tree.entries[tree.count++];
     }
     return 0;
 }
