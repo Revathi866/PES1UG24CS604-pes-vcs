@@ -116,7 +116,7 @@ compute_hash(buffer, total_len, id_out);
 if (object_exists(id_out)) {
     free(buffer);
     return 0;
-    
+  }  
     char path[512];
 object_path(id_out, path, sizeof(path));
 
@@ -129,6 +129,21 @@ if (slash) {
     mkdir(OBJECTS_DIR, 0755);
     mkdir(dir, 0755);
 }
+
+char temp_path[512];
+snprintf(temp_path, sizeof(temp_path), "%s.tmp", path);
+
+int fd = open(temp_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+if (fd < 0) {
+    free(buffer);
+    return -1;
+}
+
+write(fd, buffer, total_len);
+fsync(fd);
+close(fd);
+
+rename(temp_path, path);
 }
 
 // Read an object from the store.
