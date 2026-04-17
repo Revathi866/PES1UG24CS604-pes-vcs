@@ -145,6 +145,25 @@ static int write_tree_recursive(const Index *idx, int start, int end, int depth,
 
         const char *slash = strchr(relative_path, '/');
         TreeEntry *entry = &tree.entries[tree.count++];
+        
+        if (slash) {
+            // It's a directory
+            size_t dir_name_len = slash - relative_path;
+            strncpy(entry->name, relative_path, dir_name_len);
+            entry->name[dir_name_len] = '\0';
+            entry->mode = MODE_DIR;
+
+            // Find all entries that share this directory prefix
+            int next_group = i;
+            while (next_group < end && strncmp(idx->entries[next_group].path, path, (slash - path) + 1) == 0) {
+                next_group++;
+            }
+            
+            // Recurse to build the subtree
+            if (write_tree_recursive(idx, i, next_group, depth + 1, &entry->hash) != 0) return -1;
+            i = next_group; // Skip the group we just processed
+        } else {
+            // Logic for files (Commit 2.4)
     }
     return 0;
 }
