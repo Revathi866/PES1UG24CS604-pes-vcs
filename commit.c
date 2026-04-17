@@ -213,6 +213,15 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
         commit.has_parent = 0;
     }
 
-    (void)commit_id_out;
+    // 4. Serialize and Write
+    void *buffer = NULL;
+    size_t len = 0;
+    if (commit_serialize(&commit, &buffer, &len) != 0) return -1;
+
+    if (object_write(OBJ_COMMIT, buffer, len, commit_id_out) != 0) {
+        free(buffer);
+        return -1;
+    }
+    free(buffer);
     return 0;
 }
