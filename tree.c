@@ -170,6 +170,18 @@ static int write_tree_recursive(const Index *idx, int start, int end, int depth,
     }
     return 0;
 }
+    void *buffer = NULL;
+    size_t len = 0;
+    if (tree_serialize(&tree, &buffer, &len) != 0) return -1;
+
+    if (object_write(OBJ_TREE, buffer, len, id_out) != 0) {
+        free(buffer);
+        return -1;
+    }
+
+    free(buffer);
+    return 0;
+}
 
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
