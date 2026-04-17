@@ -38,4 +38,7 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out);
 // Returns the root tree's ObjectID in *id_out.
 int tree_from_index(ObjectID *id_out);
 
+uint32_t get_file_mode(const char *path);
+int tree_from_index(ObjectID *id_out);
+
 #endif // TREE_H

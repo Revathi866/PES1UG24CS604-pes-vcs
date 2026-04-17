@@ -58,4 +58,10 @@ static inline const char* pes_author(void) {
     return (env && env[0]) ? env : DEFAULT_AUTHOR;
 }
 
+// Write an object to the store. Returns 0 on success.
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+
+// Read an object from the store. Returns 0 on success.
+int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out);
+
 #endif // PES_H
