@@ -78,23 +78,54 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 // ─── TODO: Implement these ──────────────────────────────────────────────────
 
 static int write_tree_recursive(const Index *idx, int start, int end, int depth, ObjectID *id_out) {
-    Tree *tree = malloc(sizeof(Tree)); // Allocate on heap to avoid stack overflow
+    Tree *tree = malloc(sizeof(Tree));
     if (!tree) return -1;
     tree->count = 0;
 
     for (int i = start; i < end; ) {
+        const char *path = idx->entries[i].path;
+        const char *relative_path = path;
+        
+        // Skip path components based on current depth
+        for(int d = 0; d < depth; d++) {
+            const char *slash_ptr = strchr(relative_path, '/');
+            if (slash_ptr) relative_path = slash_ptr + 1;
+        }
+
+        const char *slash = strchr(relative_path, '/');
+        if (tree->count >= MAX_TREE_ENTRIES) { free(tree); return -1; }
         TreeEntry *entry = &tree->entries[tree->count++];
-// Use the variables to stop the warnings and the crash
-entry->mode = idx->entries[start].mode; 
-entry->hash = idx->entries[start].hash;
-strncpy(entry->name, "test", sizeof(entry->name) - 1);
-entry->name[sizeof(entry->name) - 1] = '\0';
-(void)depth; // Explicitly tell compiler depth is used
+        
+        if (slash) {
+            // Entry is a subdirectory
+            size_t dir_name_len = slash - relative_path;
+            strncpy(entry->name, relative_path, dir_name_len);
+            entry->name[dir_name_len] = '\0';
+            entry->mode = MODE_DIR;
+
+            int next_group = i;
+            size_t prefix_len = slash - path + 1;
+            while (next_group < end && strncmp(idx->entries[next_group].path, path, prefix_len) == 0) {
+                next_group++;
+            }
+            
+            if (write_tree_recursive(idx, i, next_group, depth + 1, &entry->hash) != 0) {
+                free(tree);
+                return -1;
+            }
+            i = next_group; 
+        } else {
+            // Entry is a file
+            strncpy(entry->name, relative_path, sizeof(entry->name) - 1);
+            entry->name[sizeof(entry->name) - 1] = '\0';
+            entry->mode = idx->entries[i].mode;
+            entry->hash = idx->entries[i].hash;
+            i++;
+        }
     }
 
     void *buffer = NULL;
     size_t len = 0;
-    // Pass the pointer to serialize
     if (tree_serialize(tree, &buffer, &len) != 0) { free(tree); return -1; }
 
     if (object_write(OBJ_TREE, buffer, len, id_out) != 0) {
@@ -104,16 +135,29 @@ entry->name[sizeof(entry->name) - 1] = '\0';
     }
 
     free(buffer);
-    free(tree); // Don't forget to free
+    free(tree);
     return 0;
 }
 
 int tree_from_index(ObjectID *id_out) {
-    Index idx;
+    // Allocation on the HEAP to prevent Segfault
+    Index *idx = malloc(sizeof(Index));
+    if (!idx) return -1;
+
     // Load staged files from the index
-    if (index_load(&idx) != 0) return -1;
-    if (idx.count == 0) return -1; 
+    if (index_load(idx) != 0) {
+        free(idx);
+        return -1;
+    }
     
-    // Begin recursive tree construction from the root
-    return write_tree_recursive(&idx, 0, idx.count, 0, id_out);
+    if (idx->count == 0) {
+        free(idx);
+        return -1; 
+    }
+    
+    // Pass the pointer to the recursive function
+    int result = write_tree_recursive(idx, 0, idx->count, 0, id_out);
+    
+    free(idx); // Clean up
+    return result;
 }
